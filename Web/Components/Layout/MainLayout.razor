@@ -1,0 +1,27 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Radzen.Blazor
+@inherits LayoutComponentBase
+
+<RadzenComponents />
+
+<div class="page">
+    <CascadingAuthenticationState>
+        <AuthorizeView>
+            <Authorized>
+                <div class="sidebar">
+                    <NavMenu />
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <main>
+            <div class="top-row px-4 auth">
+                <TopBar />
+            </div>
+
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
+    </CascadingAuthenticationState>
+</div>

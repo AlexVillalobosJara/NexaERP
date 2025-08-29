@@ -1,0 +1,133 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Core.DTOs.Security
+@using Core.Interfaces.Services.Security
+@inject IAuthenticationService AuthService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Iniciar Sesión - NexaERP</PageTitle>
+
+<div class="card-header text-center">
+    <h3>🏢 NexaERP</h3>
+    <p class="text-muted">Sistema ERP Multi-Tenant</p>
+</div>
+
+<div class="card-body">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">
+            @errorMessage
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p>Iniciando sesión...</p>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <InputText @bind-Value="loginModel.Email" class="form-control" placeholder="usuario@empresa.com" />
+                <ValidationMessage For="() => loginModel.Email" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <InputText type="password" @bind-Value="loginModel.Password" class="form-control" placeholder="********" />
+                <ValidationMessage For="() => loginModel.Password" />
+            </div>
+
+            @if (requiresTwoFactor)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Código de Verificación (2FA)</label>
+                    <InputText @bind-Value="loginModel.TwoFactorCode" class="form-control" placeholder="123456" maxlength="6" />
+                    <ValidationMessage For="() => loginModel.TwoFactorCode" />
+                </div>
+            }
+
+            <div class="mb-3 form-check">
+                <InputCheckbox @bind-Value="loginModel.RememberMe" class="form-check-input" />
+                <label class="form-check-label">Recordarme</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                Iniciar Sesión
+            </button>
+        </EditForm>
+
+        <div class="text-center mt-3">
+            <a href="/forgot-password" class="text-muted">¿Olvidaste tu contraseña?</a>
+        </div>
+    }
+</div>
+
+<div class="card-footer text-center text-muted">
+    <small>© 2024 NexaERP - Sistema Seguro Multi-Tenant</small>
+</div>
+
+@code {
+    private LoginDTO loginModel = new();
+    private string? errorMessage;
+    private bool isLoading = false;
+    private bool requiresTwoFactor = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Verificar si ya está autenticado
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/", true);
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+
+            var result = await AuthService.LoginAsync(loginModel);
+
+            if (result.IsSuccess)
+            {
+                // TODO: Actualizar AuthenticationStateProvider
+                Navigation.NavigateTo("/", true);
+            }
+            else if (result.RequiresTwoFactor)
+            {
+                requiresTwoFactor = true;
+                errorMessage = "Se requiere código de verificación de dos factores";
+            }
+            else if (result.IsAccountLocked)
+            {
+                errorMessage = "Cuenta bloqueada. Contacte al administrador.";
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage ?? "Error al iniciar sesión";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error interno del servidor";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,63 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Dashboard - NexaERP</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <h1>¡Bienvenido a NexaERP!</h1>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Información del Usuario</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Nombre:</strong> @context.User.Identity?.Name</p>
+                        <p><strong>Email:</strong> @GetUserClaim(context, "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")</p>
+                        <p><strong>Empresa:</strong> @GetUserClaim(context, "empresa_nombre")</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Acciones Rápidas</h5>
+                    </div>
+                    <div class="card-body">
+                        <AuthorizeView Roles="Administrador">
+                            <a href="/usuarios" class="btn btn-primary me-2">Gestionar Usuarios</a>
+                        </AuthorizeView>
+                        <a href="/inventario" class="btn btn-secondary">Ver Inventario</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <h3>Sistema Multi-Tenant</h3>
+            <p>Este es tu dashboard personalizado. El sistema separa automáticamente los datos por empresa.</p>
+
+            <div class="alert alert-success">
+                <h4>✅ Sistema de Autenticación Funcionando</h4>
+                <p>Has iniciado sesión exitosamente en NexaERP. El sistema de seguridad multi-tenant está activo.</p>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <!-- Esta sección no debería mostrarse nunca porque MainLayout redirege -->
+        <div class="alert alert-warning">
+            <p>Debes iniciar sesión para acceder al sistema.</p>
+            <a href="/login" class="btn btn-primary">Iniciar Sesión</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string? GetUserClaim(AuthenticationState authState, string claimType)
+    {
+        return authState.User.FindFirst(claimType)?.Value;
+    }
+}
