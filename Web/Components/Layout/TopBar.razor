@@ -4,20 +4,19 @@
 
 <div class="d-flex justify-content-between align-items-center w-100">
     <div>
-        <!-- Breadcrumb o título de página aquí -->
         <h5 class="mb-0">Dashboard</h5>
     </div>
 
     <div class="d-flex align-items-center">
-        <AuthorizeView>
+        <AuthorizeView Context="topBarContext">
             <Authorized>
                 <div class="dropdown">
                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="oi oi-person me-1"></span>
-                        @GetUserDisplayName(context)
+                        @GetUserDisplayName(topBarContext)
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><h6 class="dropdown-header">@GetCompanyName(context)</h6></li>
+                        <li><h6 class="dropdown-header">@GetCompanyName(topBarContext)</h6></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <a class="dropdown-item" href="perfil">
@@ -55,13 +54,11 @@
 
     private string GetCompanyName(AuthenticationState authState)
     {
-        // Buscar el claim de empresa, si no existe mostrar NexaERP
         return authState.User.FindFirst("empresa_nombre")?.Value ?? "NexaERP";
     }
 
     private async Task Logout()
     {
-        // TODO: Implementar logout usando AuthenticationService
         Navigation.NavigateTo("/login", true);
     }
 }

@@ -32,7 +32,7 @@
     }
     else
     {
-        <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" Context="loginForm">
             <DataAnnotationsValidator />
 
             <div class="mb-3">
@@ -84,7 +84,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Verificar si ya está autenticado
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true)
         {
@@ -103,7 +102,6 @@
 
             if (result.IsSuccess)
             {
-                // TODO: Actualizar AuthenticationStateProvider
                 Navigation.NavigateTo("/", true);
             }
             else if (result.RequiresTwoFactor)
