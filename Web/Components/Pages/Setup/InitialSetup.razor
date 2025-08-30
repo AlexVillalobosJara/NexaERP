@@ -1,0 +1,355 @@
+﻿@page "/setup"
+@using Core.Entities.Organization
+@using Core.Entities.Security
+@using Core.Interfaces.Services.Security
+@using Microsoft.EntityFrameworkCore
+@using NexaERP.Infrastructure.Data.Context
+@using Infrastructure.Data.Seed
+@using System.ComponentModel.DataAnnotations
+@inject NexaErpDbContext DbContext
+@inject IPasswordService PasswordService
+@inject NavigationManager Navigation
+
+<PageTitle>Configuración Inicial - NexaERP</PageTitle>
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h2>🏢 Configuración Inicial de NexaERP</h2>
+                    <p class="mb-0">Configure su primera empresa y usuario administrador</p>
+                </div>
+
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            <i class="oi oi-warning"></i> @errorMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <div class="alert alert-success">
+                            <i class="oi oi-check"></i> @successMessage
+                        </div>
+                    }
+
+                    @if (setupCompleted)
+                    {
+                        <div class="text-center">
+                            <h4>✅ ¡Configuración Completada!</h4>
+                            <p>Su sistema NexaERP ha sido configurado exitosamente.</p>
+                            <div class="mt-4">
+                                <h5>Datos de Acceso:</h5>
+                                <div class="alert alert-info">
+                                    <p><strong>Email:</strong> @adminEmail</p>
+                                    <p><strong>Contraseña:</strong> @adminPassword</p>
+                                    <p><strong>Empresa:</strong> @empresaName</p>
+                                </div>
+                                <p class="text-muted">
+                                    <small>⚠️ Por seguridad, cambie la contraseña después del primer login</small>
+                                </p>
+                            </div>
+                            <a href="/login" class="btn btn-primary btn-lg">
+                                <i class="oi oi-account-login"></i> Iniciar Sesión
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="setupModel" OnValidSubmit="HandleSetup">
+                            <DataAnnotationsValidator />
+
+                            <!-- Información de la Empresa -->
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h4>📋 Información de la Empresa</h4>
+                                    <hr>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">RUT de la Empresa *</label>
+                                        <InputText @bind-Value="setupModel.RutEmpresa" class="form-control" placeholder="12.345.678-9" />
+                                        <ValidationMessage For="() => setupModel.RutEmpresa" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Razón Social *</label>
+                                        <InputText @bind-Value="setupModel.RazonSocial" class="form-control" placeholder="Mi Empresa Limitada" />
+                                        <ValidationMessage For="() => setupModel.RazonSocial" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombre Comercial</label>
+                                        <InputText @bind-Value="setupModel.NombreComercial" class="form-control" placeholder="Mi Empresa" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Giro</label>
+                                        <InputText @bind-Value="setupModel.Giro" class="form-control" placeholder="Comercio al por menor" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Información del Usuario Administrador -->
+                            <div class="row mt-4">
+                                <div class="col-md-12">
+                                    <h4>👤 Usuario Administrador</h4>
+                                    <hr>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombres *</label>
+                                        <InputText @bind-Value="setupModel.AdminNombres" class="form-control" placeholder="Juan Carlos" />
+                                        <ValidationMessage For="() => setupModel.AdminNombres" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Apellidos *</label>
+                                        <InputText @bind-Value="setupModel.AdminApellidos" class="form-control" placeholder="García López" />
+                                        <ValidationMessage For="() => setupModel.AdminApellidos" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Email *</label>
+                                        <InputText @bind-Value="setupModel.AdminEmail" class="form-control" placeholder="admin@miempresa.cl" />
+                                        <ValidationMessage For="() => setupModel.AdminEmail" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Contraseña *</label>
+                                        <InputText type="password" @bind-Value="setupModel.AdminPassword" class="form-control" placeholder="Mínimo 8 caracteres" />
+                                        <ValidationMessage For="() => setupModel.AdminPassword" />
+                                        <div class="form-text">Debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">RUT (Opcional)</label>
+                                        <InputText @bind-Value="setupModel.AdminRut" class="form-control" placeholder="12.345.678-9" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-4">
+                                <div class="col-md-12 text-center">
+                                    <button type="submit" class="btn btn-primary btn-lg" disabled="@isProcessing">
+                                        @if (isProcessing)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        <i class="oi oi-cog"></i> Configurar Sistema
+                                    </button>
+                                </div>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SetupModel setupModel = new();
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isProcessing = false;
+    private bool setupCompleted = false;
+    private string adminEmail = "";
+    private string adminPassword = "";
+    private string empresaName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Verificar si el sistema ya está configurado
+        var hasEmpresas = await DbContext.Empresas.AnyAsync();
+        if (hasEmpresas)
+        {
+            // Redirigir al login si ya está configurado
+            Navigation.NavigateTo("/login", true);
+        }
+    }
+
+    private async Task HandleSetup()
+    {
+        try
+        {
+            isProcessing = true;
+            errorMessage = null;
+            successMessage = null;
+
+            // Validar contraseña fuerte
+            if (!PasswordService.IsPasswordStrong(setupModel.AdminPassword))
+            {
+                errorMessage = "La contraseña debe ser más fuerte. Debe contener al menos una mayúscula, una minúscula, un número y un símbolo especial.";
+                return;
+            }
+
+            // Verificar si ya existe alguna empresa
+            if (await DbContext.Empresas.AnyAsync())
+            {
+                errorMessage = "El sistema ya ha sido configurado anteriormente.";
+                return;
+            }
+
+            // Crear la empresa
+            var empresa = new Empresa
+            {
+                RutEmpresa = setupModel.RutEmpresa,
+                RazonSocial = setupModel.RazonSocial,
+                NombreComercial = setupModel.NombreComercial,
+                Giro = setupModel.Giro,
+                MonedaPrincipalId = 1,
+                MetodoValorizacionId = 1,
+                ManejaLotes = true,
+                ManejaSeries = false,
+                ManejaUbicaciones = true,
+                RequiereAutenticacionDosFactor = false,
+                TiempoExpiracionSesion = 480,
+                MaximoIntentosLogin = 5,
+                TiempoBloqueoTemporalMinutos = 30,
+                FechaCreacion = DateTime.UtcNow,
+                UsuarioCreacion = 1,
+                Activo = true
+            };
+
+            DbContext.Empresas.Add(empresa);
+            await DbContext.SaveChangesAsync();
+
+            // Crear roles del sistema para esta empresa
+            await CompanySeedData.SeedCompanyRoles(DbContext, empresa.Id, 1);
+
+            // Crear usuario administrador
+            var salt = "";
+            var hashedPassword = PasswordService.HashPassword(setupModel.AdminPassword, out salt);
+
+            var adminUser = new Usuario
+            {
+                EmpresaId = empresa.Id,
+                NombreUsuario = setupModel.AdminEmail.Split('@')[0], // Usar parte del email como username
+                Email = setupModel.AdminEmail.ToLower(),
+                PasswordHash = hashedPassword,
+                Salt = salt,
+                Nombres = setupModel.AdminNombres,
+                Apellidos = setupModel.AdminApellidos,
+                RutPersona = setupModel.AdminRut,
+                RequiereCambioPassword = false,
+                IntentosLoginFallidos = 0,
+                CuentaBloqueada = false,
+                AutenticacionDobleFactorHabilitada = false,
+                EmailVerificado = true,
+                Idioma = "es-CL",
+                ZonaHoraria = "America/Santiago",
+                FechaCreacion = DateTime.UtcNow,
+                UsuarioCreacion = 1,
+                Activo = true
+            };
+
+            DbContext.Usuarios.Add(adminUser);
+            await DbContext.SaveChangesAsync();
+
+            // Asignar rol de Administrador al usuario
+            var adminRole = await DbContext.Roles
+                .FirstOrDefaultAsync(r => r.EmpresaId == empresa.Id && r.Nombre == "Administrador");
+
+            if (adminRole != null)
+            {
+                var usuarioRol = new UsuarioRol
+                {
+                    UsuarioId = adminUser.Id,
+                    RolId = adminRole.Id,
+                    FechaAsignacion = DateTime.UtcNow,
+                    UsuarioAsignacion = 1,
+                    Activo = true
+                };
+
+                DbContext.UsuariosRoles.Add(usuarioRol);
+            }
+
+            // Asignar permisos al rol Administrador
+            await CompanySeedData.AssignRolePermissions(DbContext, empresa.Id, 1);
+
+            await DbContext.SaveChangesAsync();
+
+            // Marcar como completado
+            setupCompleted = true;
+            adminEmail = setupModel.AdminEmail;
+            adminPassword = setupModel.AdminPassword;
+            empresaName = setupModel.RazonSocial;
+
+            successMessage = "¡Sistema configurado exitosamente!";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al configurar el sistema: {ex.Message}";
+        }
+        finally
+        {
+            isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    // Modelo para el formulario de configuración
+    public class SetupModel
+    {
+        [Required(ErrorMessage = "El RUT de la empresa es requerido")]
+        [Display(Name = "RUT Empresa")]
+        public string RutEmpresa { get; set; } = "";
+
+        [Required(ErrorMessage = "La razón social es requerida")]
+        [Display(Name = "Razón Social")]
+        public string RazonSocial { get; set; } = "";
+
+        [Display(Name = "Nombre Comercial")]
+        public string? NombreComercial { get; set; }
+
+        [Display(Name = "Giro")]
+        public string? Giro { get; set; }
+
+        [Required(ErrorMessage = "Los nombres son requeridos")]
+        [Display(Name = "Nombres")]
+        public string AdminNombres { get; set; } = "";
+
+        [Required(ErrorMessage = "Los apellidos son requeridos")]
+        [Display(Name = "Apellidos")]
+        public string AdminApellidos { get; set; } = "";
+
+        [Required(ErrorMessage = "El email es requerido")]
+        [EmailAddress(ErrorMessage = "Formato de email inválido")]
+        [Display(Name = "Email")]
+        public string AdminEmail { get; set; } = "";
+
+        [Required(ErrorMessage = "La contraseña es requerida")]
+        [MinLength(8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres")]
+        [Display(Name = "Contraseña")]
+        public string AdminPassword { get; set; } = "";
+
+        [Display(Name = "RUT")]
+        public string? AdminRut { get; set; }
+    }
+}

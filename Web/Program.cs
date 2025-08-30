@@ -1,8 +1,11 @@
+Ôªøusing NexaERP.Application.Extensions;
 using NexaERP.Infrastructure.Extensions;
-using NexaERP.Application.Extensions;
 using NexaERP.Security.Extensions;
+using Web.Components;
+using NexaERP.Web.Middleware;
 using Radzen;
 using Serilog;
+using Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,21 +19,21 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// Servicios de Blazor
-builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
+// Servicios
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 
-// Servicios de Radzen
 builder.Services.AddRadzenComponents();
+builder.Services.AddAutoMapper(typeof(Program));
 
-// Servicios de la aplicaciÛn (ORDEN IMPORTANTE)
+// Servicios de la aplicaci√≥n
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddSecurityServices(builder.Configuration);
 
 var app = builder.Build();
 
-// ConfiguraciÛn del pipeline
+// Pipeline de configuraci√≥n
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -41,22 +44,28 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// ORDEN IMPORTANTE: Authentication antes que Authorization
+// ‚≠ê AGREGAR MIDDLEWARE DE SETUP
+app.UseMiddleware<SetupRedirectMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
-app.MapRazorPages();
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
 
 try
 {
     Log.Information("Iniciando NexaERP...");
+
+    // Inicializar base de datos con datos semilla b√°sicos
+    await app.Services.InitializeDatabaseAsync();
+
     app.Run();
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "La aplicaciÛn fallÛ al iniciar");
+    Log.Fatal(ex, "La aplicaci√≥n fall√≥ al iniciar");
 }
 finally
 {
